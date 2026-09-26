@@ -1,3 +1,4 @@
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -20,20 +21,34 @@ class VideoRoomScreen extends StatelessWidget {
         children: [
           // Remote Participant Fullscreen Video
           Positioned.fill(
-            child: Image.asset(
-              AppImages.remoteUser,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: const Color(0xff111827),
-                child: const Center(
-                  child: Icon(
-                    Icons.person,
-                    size: 80,
-                    color: Colors.white24,
+            child: Obx(() {
+              if (controller.engine != null &&
+                  controller.remoteUid.value != null) {
+                return AgoraVideoView(
+                  controller: VideoViewController.remote(
+                    rtcEngine: controller.engine!,
+                    canvas: VideoCanvas(uid: controller.remoteUid.value),
+                    connection: RtcConnection(
+                      channelId: controller.roomId.value,
+                    ),
+                  ),
+                );
+              }
+              return Image.asset(
+                AppImages.remoteUser,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: const Color(0xff111827),
+                  child: const Center(
+                    child: Icon(
+                      Icons.person,
+                      size: 80,
+                      color: Colors.white24,
+                    ),
                   ),
                 ),
-              ),
-            ),
+              );
+            }),
           ),
 
           // Bottom Gradient for Controls visibility
@@ -77,6 +92,8 @@ class VideoRoomScreen extends StatelessWidget {
             child: Obx(
               () => FloatingLocalVideo(
                 isCameraOff: controller.isCameraOff.value,
+                engine: controller.engine,
+                isJoined: controller.isJoined.value,
               ),
             ),
           ),

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -6,17 +7,24 @@ import '../../../core/app_routes/app_routes.dart';
 
 class RoomSetupController extends GetxController {
   final isCreateMode = true.obs;
-  final generatedRoomId = '482319'.obs;
+  final generatedRoomId = ''.obs;
   late final TextEditingController joinRoomIdController;
 
   @override
   void onInit() {
     super.onInit();
     joinRoomIdController = TextEditingController();
+    generateRandomRoomId();
     final args = Get.arguments;
     if (args != null && args is Map && args.containsKey('isCreate')) {
       isCreateMode.value = args['isCreate'] as bool;
     }
+  }
+
+  void generateRandomRoomId() {
+    final random = Random();
+    final id = (100000 + random.nextInt(900000)).toString();
+    generatedRoomId.value = id;
   }
 
   @override

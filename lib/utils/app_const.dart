@@ -6,6 +6,11 @@ class AppConstants {
   static String conversationId = "ConversationId";
   static String onBoard = "Onboard";
 
+  /// <====================== Agora Config ==============================>
+  static const String agoraAppId = ""; 
+  static const String agoraToken = ""; 
+
+
   /// <====================== All Response Message Static==============================>
 
   static String successfull = "Request Successfull";

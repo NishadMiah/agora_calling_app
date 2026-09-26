@@ -1,3 +1,4 @@
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -64,10 +65,14 @@ class CallControlButton extends StatelessWidget {
 
 class FloatingLocalVideo extends StatelessWidget {
   final bool isCameraOff;
+  final RtcEngine? engine;
+  final bool isJoined;
 
   const FloatingLocalVideo({
     super.key,
     this.isCameraOff = false,
+    this.engine,
+    this.isJoined = false,
   });
 
   @override
@@ -100,20 +105,27 @@ class FloatingLocalVideo extends StatelessWidget {
                   size: 28.sp,
                 ),
               )
-            : Image.asset(
-                AppImages.localUser,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: const Color(0xff374151),
-                  child: const Center(
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white70,
-                      size: 32,
+            : (engine != null && isJoined)
+                ? AgoraVideoView(
+                    controller: VideoViewController(
+                      rtcEngine: engine!,
+                      canvas: const VideoCanvas(uid: 0),
+                    ),
+                  )
+                : Image.asset(
+                    AppImages.localUser,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      color: const Color(0xff374151),
+                      child: const Center(
+                        child: Icon(
+                          Icons.person,
+                          color: Colors.white70,
+                          size: 32,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
       ),
     );
   }
