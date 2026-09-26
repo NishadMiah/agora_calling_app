@@ -26,6 +26,40 @@ class VideoRoomScreen extends StatelessWidget {
               final engine = controller.engine;
 
               if (engine != null && remoteUid != null) {
+                if (controller.isRemoteVideoMuted.value) {
+                  return Container(
+                    color: const Color(0xff111827),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 84.w,
+                            height: 84.w,
+                            decoration: const BoxDecoration(
+                              color: Color(0xff1F2937),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.videocam_off_rounded,
+                              size: 40.sp,
+                              color: Colors.white54,
+                            ),
+                          ),
+                          SizedBox(height: 16.h),
+                          Text(
+                            "User's camera is off",
+                            style: GoogleFonts.poppins(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
                 return AgoraVideoView(
                   controller: VideoViewController.remote(
                     rtcEngine: engine,

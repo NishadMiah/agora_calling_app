@@ -12,6 +12,8 @@ class VideoRoomController extends GetxController {
   final participantCount = 1.obs;
   final isJoined = false.obs;
   final isEngineReady = false.obs;
+  final isRemoteVideoMuted = false.obs;
+  final isRemoteAudioMuted = false.obs;
   final remoteUsers = <int>[].obs;
   final remoteUid = RxnInt();
 
@@ -63,14 +65,32 @@ class VideoRoomController extends GetxController {
             isJoined.value = true;
             participantCount.value = 1 + remoteUsers.length;
             debugPrint("Successfully joined channel: ${connection.channelId}");
+            try {
+              engine?.setEnableSpeakerphone(isSpeakerOn.value);
+            } catch (e) {
+              debugPrint("Speakerphone set error: $e");
+            }
           },
           onUserJoined: (RtcConnection connection, int uid, int elapsed) {
             if (!remoteUsers.contains(uid)) {
               remoteUsers.add(uid);
               remoteUid.value = uid;
             }
+            isRemoteVideoMuted.value = false;
             participantCount.value = 1 + remoteUsers.length;
             debugPrint("Remote user joined: $uid");
+          },
+          onUserMuteVideo: (RtcConnection connection, int uid, bool muted) {
+            if (uid == remoteUid.value) {
+              isRemoteVideoMuted.value = muted;
+            }
+            debugPrint("User $uid muted video: $muted");
+          },
+          onUserMuteAudio: (RtcConnection connection, int uid, bool muted) {
+            if (uid == remoteUid.value) {
+              isRemoteAudioMuted.value = muted;
+            }
+            debugPrint("User $uid muted audio: $muted");
           },
           onUserOffline: (
             RtcConnection connection,
@@ -79,6 +99,7 @@ class VideoRoomController extends GetxController {
           ) {
             remoteUsers.remove(uid);
             remoteUid.value = remoteUsers.isNotEmpty ? remoteUsers.first : null;
+            isRemoteVideoMuted.value = false;
             participantCount.value = 1 + remoteUsers.length;
             debugPrint("Remote user left: $uid");
           },
@@ -86,6 +107,7 @@ class VideoRoomController extends GetxController {
             isJoined.value = false;
             remoteUsers.clear();
             remoteUid.value = null;
+            isRemoteVideoMuted.value = false;
             participantCount.value = 1;
           },
           onError: (ErrorCodeType err, String msg) {
@@ -94,10 +116,18 @@ class VideoRoomController extends GetxController {
         ),
       );
 
-      // 4. Setup Video & Client Role
+      // 4. Setup Audio & Video Engine Configuration
       await engine!.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
       await engine!.enableVideo();
       await engine!.enableAudio();
+      await engine!.enableLocalVideo(true);
+      await engine!.enableLocalAudio(true);
+      
+      // Ensure default Audio Route is Speakerphone
+      await engine!.setDefaultAudioRouteToSpeakerphone(true);
+      await engine!.adjustRecordingSignalVolume(100);
+      await engine!.adjustPlaybackSignalVolume(100);
+
       await engine!.startPreview();
       isEngineReady.value = true;
 
@@ -128,6 +158,7 @@ class VideoRoomController extends GetxController {
   Future<void> toggleCamera() async {
     isCameraOff.value = !isCameraOff.value;
     await engine?.muteLocalVideoStream(isCameraOff.value);
+    await engine?.enableLocalVideo(!isCameraOff.value);
   }
 
   Future<void> switchCamera() async {
