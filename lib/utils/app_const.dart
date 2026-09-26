@@ -9,6 +9,7 @@ class AppConstants {
   /// <====================== Agora Config ==============================>
   static const String agoraAppId = ""; 
   static const String agoraToken = ""; 
+  static const String defaultRoomId = "48231"; 
 
 
   /// <====================== All Response Message Static==============================>

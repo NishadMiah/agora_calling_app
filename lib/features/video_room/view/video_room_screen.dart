@@ -2,8 +2,8 @@ import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../utils/app_colors.dart';
-import '../../../utils/app_images.dart';
 import '../controller/video_room_controller.dart';
 import '../widgets/video_room_widget.dart';
 
@@ -19,32 +19,67 @@ class VideoRoomScreen extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Remote Participant Fullscreen Video
+          // Remote Participant Fullscreen Video or Waiting View
           Positioned.fill(
             child: Obx(() {
-              if (controller.engine != null &&
-                  controller.remoteUid.value != null) {
+              final remoteUid = controller.remoteUid.value;
+              final engine = controller.engine;
+
+              if (engine != null && remoteUid != null) {
                 return AgoraVideoView(
                   controller: VideoViewController.remote(
-                    rtcEngine: controller.engine!,
-                    canvas: VideoCanvas(uid: controller.remoteUid.value),
+                    rtcEngine: engine,
+                    canvas: VideoCanvas(uid: remoteUid),
                     connection: RtcConnection(
                       channelId: controller.roomId.value,
                     ),
                   ),
                 );
               }
-              return Image.asset(
-                AppImages.remoteUser,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: const Color(0xff111827),
-                  child: const Center(
-                    child: Icon(
-                      Icons.person,
-                      size: 80,
-                      color: Colors.white24,
-                    ),
+
+              // Waiting state when remote user hasn't joined yet
+              return Container(
+                color: const Color(0xff111827),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 84.w,
+                        height: 84.w,
+                        decoration: BoxDecoration(
+                          color: const Color(0xff1F2937),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.callPrimary.withValues(alpha: 0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.person_search_rounded,
+                          size: 40.sp,
+                          color: AppColors.callPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 18.h),
+                      Text(
+                        "Waiting for others to join...",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 6.h),
+                      Text(
+                        "Share Room ID: #${controller.roomId.value}",
+                        style: GoogleFonts.poppins(
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white60,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -93,7 +128,8 @@ class VideoRoomScreen extends StatelessWidget {
               () => FloatingLocalVideo(
                 isCameraOff: controller.isCameraOff.value,
                 engine: controller.engine,
-                isJoined: controller.isJoined.value,
+                isEngineReady: controller.isEngineReady.value,
+                onSwitchCamera: controller.switchCamera,
               ),
             ),
           ),

@@ -66,13 +66,15 @@ class CallControlButton extends StatelessWidget {
 class FloatingLocalVideo extends StatelessWidget {
   final bool isCameraOff;
   final RtcEngine? engine;
-  final bool isJoined;
+  final bool isEngineReady;
+  final VoidCallback? onSwitchCamera;
 
   const FloatingLocalVideo({
     super.key,
     this.isCameraOff = false,
     this.engine,
-    this.isJoined = false,
+    this.isEngineReady = false,
+    this.onSwitchCamera,
   });
 
   @override
@@ -95,37 +97,64 @@ class FloatingLocalVideo extends StatelessWidget {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.r),
-        child: isCameraOff
-            ? Center(
-                child: Icon(
-                  Icons.videocam_off_rounded,
-                  color: Colors.white54,
-                  size: 28.sp,
-                ),
-              )
-            : (engine != null && isJoined)
-                ? AgoraVideoView(
-                    controller: VideoViewController(
-                      rtcEngine: engine!,
-                      canvas: const VideoCanvas(uid: 0),
-                    ),
-                  )
-                : Image.asset(
-                    AppImages.localUser,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: const Color(0xff374151),
-                      child: const Center(
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white70,
-                          size: 32,
-                        ),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12.r),
+              child: isCameraOff
+                  ? Center(
+                      child: Icon(
+                        Icons.videocam_off_rounded,
+                        color: Colors.white54,
+                        size: 28.sp,
                       ),
-                    ),
+                    )
+                  : (engine != null && isEngineReady)
+                      ? AgoraVideoView(
+                          controller: VideoViewController(
+                            rtcEngine: engine!,
+                            canvas: const VideoCanvas(uid: 0),
+                          ),
+                        )
+                      : Image.asset(
+                          AppImages.localUser,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                            color: const Color(0xff374151),
+                            child: const Center(
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.white70,
+                                size: 32,
+                              ),
+                            ),
+                          ),
+                        ),
+            ),
+          ),
+          if (onSwitchCamera != null && !isCameraOff)
+            Positioned(
+              top: 4.h,
+              right: 4.w,
+              child: GestureDetector(
+                onTap: onSwitchCamera,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0x80000000),
+                    shape: BoxShape.circle,
                   ),
+                  child: Icon(
+                    Icons.cameraswitch_rounded,
+                    size: 14.sp,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
