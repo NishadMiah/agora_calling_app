@@ -8,8 +8,8 @@ class AppConstants {
 
   /// <====================== Agora Config ==============================>
   static const String agoraAppId = ""; 
-  static const String agoraToken = ""; 
-  static const String defaultRoomId = "48231"; 
+  static const String agoraAppCertificate = "";
+  static const int agoraTokenExpirySeconds = 3600;
 
 
   /// <====================== All Response Message Static==============================>

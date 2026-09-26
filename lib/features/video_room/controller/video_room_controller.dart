@@ -1,11 +1,12 @@
 import 'package:agora_rtc_engine/agora_rtc_engine.dart';
+import 'package:agora_token_generator/agora_token_generator.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../utils/app_const.dart';
 
 class VideoRoomController extends GetxController {
-  final roomId = AppConstants.defaultRoomId.obs;
+  final roomId = ''.obs;
   final isMicMuted = false.obs;
   final isCameraOff = false.obs;
   final isSpeakerOn = true.obs;
@@ -29,6 +30,39 @@ class VideoRoomController extends GetxController {
     initAgora();
   }
 
+  /// Generates an Agora RTC token locally using App Certificate.
+  /// ⚠️ In production, generate tokens on a secure backend server.
+  String _generateToken({required String channelName, required int uid}) {
+    final appCertificate = AppConstants.agoraAppCertificate;
+
+    // If no App Certificate is configured, return empty string
+    // (works only if Agora project is in Testing/App-ID-Only mode)
+    if (appCertificate == 'YOUR_APP_CERTIFICATE_HERE' ||
+        appCertificate.isEmpty) {
+      debugPrint(
+        '[Agora] No App Certificate set — joining without token. '
+        'Make sure your Agora project is in Testing Mode.',
+      );
+      return '';
+    }
+
+    try {
+      final token = RtcTokenBuilder.buildTokenWithUid(
+        appId: AppConstants.agoraAppId,
+        appCertificate: appCertificate,
+        channelName: channelName,
+        uid: uid,
+        tokenExpireSeconds: AppConstants.agoraTokenExpirySeconds,
+      );
+
+      debugPrint('[Agora] Token generated successfully for channel: $channelName');
+      return token;
+    } catch (e) {
+      debugPrint('[Agora] Token generation failed: $e');
+      return '';
+    }
+  }
+
   Future<void> initAgora() async {
     try {
       // 1. Request microphone & camera permissions
@@ -49,26 +83,31 @@ class VideoRoomController extends GetxController {
         return;
       }
 
-      // 2. Create and initialize RTC Engine
+      // 2. Generate token locally
+      final token = _generateToken(channelName: roomId.value, uid: 0);
+
+      // 3. Create and initialize RTC Engine
       engine = createAgoraRtcEngine();
       await engine!.initialize(
         RtcEngineContext(
           appId: appId,
-          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+          channelProfile: ChannelProfileType.channelProfileCommunication,
         ),
       );
 
-      // 3. Register Event Handlers
+      // 4. Register Event Handlers
       engine!.registerEventHandler(
         RtcEngineEventHandler(
           onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
             isJoined.value = true;
             participantCount.value = 1 + remoteUsers.length;
-            debugPrint("Successfully joined channel: ${connection.channelId}");
+            debugPrint(
+              "[Agora] Joined channel: ${connection.channelId}, uid: ${connection.localUid}",
+            );
             try {
               engine?.setEnableSpeakerphone(isSpeakerOn.value);
             } catch (e) {
-              debugPrint("Speakerphone set error: $e");
+              debugPrint("[Agora] Speakerphone set error: $e");
             }
           },
           onUserJoined: (RtcConnection connection, int uid, int elapsed) {
@@ -78,19 +117,19 @@ class VideoRoomController extends GetxController {
             }
             isRemoteVideoMuted.value = false;
             participantCount.value = 1 + remoteUsers.length;
-            debugPrint("Remote user joined: $uid");
+            debugPrint("[Agora] Remote user joined: $uid");
           },
           onUserMuteVideo: (RtcConnection connection, int uid, bool muted) {
             if (uid == remoteUid.value) {
               isRemoteVideoMuted.value = muted;
             }
-            debugPrint("User $uid muted video: $muted");
+            debugPrint("[Agora] User $uid muted video: $muted");
           },
           onUserMuteAudio: (RtcConnection connection, int uid, bool muted) {
             if (uid == remoteUid.value) {
               isRemoteAudioMuted.value = muted;
             }
-            debugPrint("User $uid muted audio: $muted");
+            debugPrint("[Agora] User $uid muted audio: $muted");
           },
           onUserOffline: (
             RtcConnection connection,
@@ -98,10 +137,11 @@ class VideoRoomController extends GetxController {
             UserOfflineReasonType reason,
           ) {
             remoteUsers.remove(uid);
-            remoteUid.value = remoteUsers.isNotEmpty ? remoteUsers.first : null;
+            remoteUid.value =
+                remoteUsers.isNotEmpty ? remoteUsers.first : null;
             isRemoteVideoMuted.value = false;
             participantCount.value = 1 + remoteUsers.length;
-            debugPrint("Remote user left: $uid");
+            debugPrint("[Agora] Remote user left: $uid");
           },
           onLeaveChannel: (RtcConnection connection, RtcStats stats) {
             isJoined.value = false;
@@ -110,20 +150,27 @@ class VideoRoomController extends GetxController {
             isRemoteVideoMuted.value = false;
             participantCount.value = 1;
           },
+          onTokenPrivilegeWillExpire: (RtcConnection connection, String token) {
+            // Regenerate & renew the token before it expires
+            debugPrint('[Agora] Token will expire soon. Renewing...');
+            final newToken =
+                _generateToken(channelName: roomId.value, uid: 0);
+            if (newToken.isNotEmpty) {
+              engine?.renewToken(newToken);
+            }
+          },
           onError: (ErrorCodeType err, String msg) {
-            debugPrint("Agora error: $err, $msg");
+            debugPrint("[Agora] Error: $err — $msg");
           },
         ),
       );
 
-      // 4. Setup Audio & Video Engine Configuration
+      // 5. Setup Audio & Video
       await engine!.setClientRole(role: ClientRoleType.clientRoleBroadcaster);
       await engine!.enableVideo();
       await engine!.enableAudio();
       await engine!.enableLocalVideo(true);
       await engine!.enableLocalAudio(true);
-      
-      // Ensure default Audio Route is Speakerphone
       await engine!.setDefaultAudioRouteToSpeakerphone(true);
       await engine!.adjustRecordingSignalVolume(100);
       await engine!.adjustPlaybackSignalVolume(100);
@@ -131,14 +178,14 @@ class VideoRoomController extends GetxController {
       await engine!.startPreview();
       isEngineReady.value = true;
 
-      // 5. Join Channel
+      // 6. Join Channel
       await engine!.joinChannel(
-        token: AppConstants.agoraToken.trim(),
+        token: token,
         channelId: roomId.value.trim(),
         uid: 0,
         options: const ChannelMediaOptions(
           clientRoleType: ClientRoleType.clientRoleBroadcaster,
-          channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+          channelProfile: ChannelProfileType.channelProfileCommunication,
           publishCameraTrack: true,
           publishMicrophoneTrack: true,
           autoSubscribeAudio: true,
