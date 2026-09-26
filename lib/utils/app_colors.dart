@@ -35,4 +35,16 @@ class AppColors {
   static const Color lightBlue = Color(0xff007AFF);
   static const Color blue = Color(0xff0054A5);
   static const Color orange = Color(0xffFF9800);
+
+  // Video Room Theme Colors
+  static const Color callPrimary = Color(0xff1E6FFF);
+  static const Color callPurple = Color(0xff8B5CF6);
+  static const Color iconCircleBg = Color(0xffEBF3FE);
+  static const Color cardBackground = Color(0xffF6F8FC);
+  static const Color inputBackground = Color(0xffF8FAFC);
+  static const Color borderLight = Color(0xffE2E8F0);
+  static const Color darkHeading = Color(0xff0F172A);
+  static const Color subtitleGrey = Color(0xff64748B);
+  static const Color placeholderGrey = Color(0xff94A3B8);
+  static const Color callRed = Color(0xffEF4444);
 }

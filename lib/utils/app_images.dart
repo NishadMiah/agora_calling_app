@@ -8,4 +8,6 @@ class AppImages {
   static const String onboardingTwo = "$basePath/onboarding_two.png";
   static const String loginChoice = "$basePath/login_choice.png";
   static const String desgin = "$basePath/desgin.png";
+  static const String remoteUser = "$basePath/remote_user.jpg";
+  static const String localUser = "$basePath/local_user.jpg";
 }
